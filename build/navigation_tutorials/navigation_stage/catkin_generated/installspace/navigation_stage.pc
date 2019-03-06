@@ -1,0 +1,8 @@
+prefix=/home/sz/racecar/install
+
+Name: navigation_stage
+Description: Description of navigation_stage
+Version: 0.2.3
+Cflags: 
+Libs: -L/home/sz/racecar/install/lib 
+Requires: 
