@@ -234,7 +234,6 @@ int main(int argc, char** argv)
     ros::NodeHandle n("~");
 
     name = ros::this_node::getName();
-
     std::string port;
     if (n.hasParam("port"))
     n.getParam("port", port);
@@ -255,7 +254,6 @@ int main(int argc, char** argv)
 
 
     ROS_WARN("Model set to %s", model.c_str());
-
     int baud;
     if (n.hasParam("baud"))
     n.getParam("baud", baud);

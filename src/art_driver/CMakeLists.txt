@@ -163,9 +163,8 @@ include_directories(
 #link_directories(./lib/libart_driver.a)
  target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
-   ${PROJECT_SOURCE_DIR}/lib/libart_driver.a
-   
- )
+   ${PROJECT_SOURCE_DIR}/lib/libart_driver.a  
+)
 
 #target_link_libraries(${PROJECT_NAME}_node
 #

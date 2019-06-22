@@ -21,6 +21,20 @@ ros/package.h
 -
 geometry_msgs/Twist.h
 -
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+sys/types.h
+-
+sys/stat.h
+-
+fcntl.h
+-
+termios.h
+-
 
 /opt/ros/kinetic/include/geometry_msgs/Twist.h
 string
