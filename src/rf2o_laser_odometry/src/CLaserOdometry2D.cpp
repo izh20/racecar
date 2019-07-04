@@ -995,8 +995,8 @@ void CLaserOdometry2D::PoseUpdate()
     odom.header.stamp = ros::Time::now();
     odom.header.frame_id = odom_frame_id;
     //set the position
-    odom.pose.pose.position.x = robot_pose.x();
-    odom.pose.pose.position.y = robot_pose.y();
+    odom.pose.pose.position.x = -robot_pose.x();
+    odom.pose.pose.position.y = -robot_pose.y();
     odom.pose.pose.position.z = 0.0;
     odom.pose.pose.orientation = tf::createQuaternionMsgFromYaw(robot_pose.yaw());
     //set the velocity

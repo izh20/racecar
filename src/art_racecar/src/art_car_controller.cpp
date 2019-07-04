@@ -35,7 +35,7 @@ along with hypha_racecar.  If not, see <http://www.gnu.org/licenses/>.
 int start_loop_flag = 0;
 double start_speed = 1580;
 extern  PID  pid_speed;
-
+CircleData CD1;
 void PIDInit (struct PID *pp)                     //PID参数初始化，都置0
 {
     memset(pp, 0, sizeof(PID));
@@ -169,11 +169,13 @@ bool L1Controller::isForwardWayPt(const geometry_msgs::Point& wayPt, const geome
 
     double car_car2wayPt_x = cos(car_theta)*car2wayPt_x + sin(car_theta)*car2wayPt_y;
     double car_car2wayPt_y = -sin(car_theta)*car2wayPt_x + cos(car_theta)*car2wayPt_y;
-
+    //ROS_INFO("dis:%f",car_car2wayPt_x);
     if(car_car2wayPt_x >0) /*is Forward WayPt*/
         return true;
-    else
+    else 
+    {
         return false;
+    }          
 }
 
 
@@ -189,6 +191,26 @@ bool L1Controller::isWayPtAwayFromLfwDist(const geometry_msgs::Point& wayPt, con
         return true;
 }
 
+CircleData findCircle(geometry_msgs::Point pt1,geometry_msgs::Point pt2,geometry_msgs::Point pt3)//pt2为中点
+{
+    geometry_msgs::Point midpt1,midpt2;//定义两个点，分别表示两个中点
+    midpt1.x=(pt2.x+pt1.x)/2;
+    midpt1.y=(pt2.y+pt1.y)/2;
+
+    midpt2.x=(pt3.x+pt2.x)/2;
+    midpt2.y=(pt3.y+pt2.y)/2;
+
+    float k1=-(pt2.x-pt1.x)/(pt2.y-pt1.y);
+    float k2=-(pt3.x-pt2.x)/(pt3.y-pt2.y);
+
+    CircleData CD;
+
+    CD.center.x=(midpt2.y-midpt1.y-k2*midpt2.x+k1*midpt1.x)/(k1-k2);
+    CD.center.y=midpt1.y+k1*(midpt2.y-midpt1.y-k2*midpt2.x+k2*midpt1.x)/(k1-k2);
+    CD.radius=sqrtf((CD.center.x-pt1.x)*(CD.center.x-pt1.x)+(CD.center.y-pt1.y)*(CD.center.y-pt1.y));
+    return CD;
+}
+
 geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Pose& carPose)
 {
     geometry_msgs::Point carPose_pos = carPose.position;
@@ -196,19 +218,42 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
     geometry_msgs::Point forwardPt;
     geometry_msgs::Point odom_car2WayPtVec;
     foundForwardPt = false;
+    
     //ROS_INFO("carPose_yaw = %2f",carPose_yaw);
+    int i_start,i_mid,i_end;
     if(!goal_reached){
         for(int i =0; i< map_path.poses.size(); i++)
         {
+            i_start=i+100;
+            i_mid=i_start+50;
+            i_end=i_mid+50;
+            if(i_start>map_path.poses.size())
+                i_start=map_path.poses.size();
+            if(i_mid>map_path.poses.size())
+                i_mid=map_path.poses.size();
+            if(i_end>map_path.poses.size())
+                i_end=map_path.poses.size();
+            geometry_msgs::Point map_path_pose1 = map_path.poses[i_start].pose.position;
+            //geometry_msgs::PoseStamped odom_path_pose1;
+            geometry_msgs::Point map_path_pose2 = map_path.poses[i_mid].pose.position;
+            //geometry_msgs::PoseStamped odom_path_pose2;
+            geometry_msgs::Point map_path_pose3 = map_path.poses[i_end].pose.position;
+            //geometry_msgs::PoseStamped odom_path_pose3;
+
+
+
             geometry_msgs::PoseStamped map_path_pose = map_path.poses[i];
             geometry_msgs::PoseStamped odom_path_pose;
+          
 
+            CD1=findCircle(map_path_pose1,map_path_pose2,map_path_pose3);
+            ROS_INFO("radius:%f",CD1.radius);
             try
             {
                 tf_listener.transformPose("odom", ros::Time(0) , map_path_pose, "map" ,odom_path_pose);
                 geometry_msgs::Point odom_path_wayPt = odom_path_pose.pose.position;
                 bool _isForwardWayPt = isForwardWayPt(odom_path_wayPt,carPose);
-
+                 //ROS_INFO("odom_path_pose.pose.x:%f size:%d i:%f",odom_path_pose.pose.position.x,map_path.poses.size(),carPose_pos.x);//规划路径点的分辨率为2cm左右
                 if(_isForwardWayPt)
                 {
                     bool _isWayPtAwayFromLfwDist = isWayPtAwayFromLfwDist(odom_path_wayPt,carPose_pos);
@@ -219,12 +264,15 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
                         break;
                     }
                 }
+                
+                
             }
             catch(tf::TransformException &ex)
             {
                 ROS_ERROR("%s",ex.what());
                 ros::Duration(1.0).sleep();
             }
+            
         }
         
     }
@@ -334,7 +382,8 @@ L1Controller::L1Controller()
     timer2 = n_.createTimer(ros::Duration((0.5)/controller_freq), &L1Controller::goalReachingCB, this); // Duration(0.05) -> 20Hz
 
     //Init variables
-    Lfw = goalRadius = getL1Distance(Vcmd);
+    Lfw = getL1Distance(Vcmd);
+    goalRadius=0.5;
     foundForwardPt = false;
     goal_received = false;
     goal_reached = false;
@@ -395,47 +444,56 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
             if(!goal_reached)
             {
                // if(start_loop_flag++ <= 250)
-		if(carVel.linear.x<1.3)
-                {
+               if(CD1.radius>10)
+               {
+		        if(carVel.linear.x<1.0)
+                  {
                   // Lfw = goalRadius = getL1Distance(1);
 
                     double u = getGasInput(carVel.linear.x);
                     
                    // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-		    cmd_vel.linear.x=(int)start_speed;
+		             cmd_vel.linear.x=(int)start_speed;
 
 
-                     start_speed += 0.12;
+                     start_speed += 0.2;
                      if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
                      
-		     ROS_INFO("baseSpeed = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
-                }
-		else if(carVel.linear.x>=1.3&&carVel.linear.x<2.5)
-		{
-			 double u = getGasInput(carVel.linear.x);
-			//Lfw = goalRadius = getL1Distance(2.0);
+		             ROS_INFO("baseSpeed = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
+                     }
+		        else if(carVel.linear.x>=1.0&&carVel.linear.x<1.8)
+		        {
+			         double u = getGasInput(carVel.linear.x);
+			          //Lfw = goalRadius = getL1Distance(2.0);
                    // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
                     cmd_vel.linear.x=(int)start_speed;
 
 
-                     start_speed += 0.06;
+                     start_speed += 0.2;
                      if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
 
-                     ROS_INFO("baseSpeed = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
+                     ROS_INFO("baseSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
 
-		}
-                else
-                {
-           	    //Lfw = goalRadius = getL1Distance(3.0);
-		    start_speed=1580;
+		         }
+                 else 
+                 {
+           	        //Lfw = goalRadius = getL1Distance(3.0);
+		             //start_speed=1580;
                     //ROS_INFO("!goal_reached");
                     double u = getGasInput(carVel.linear.x);                   
                     cmd_vel.linear.x = baseSpeed + PIDCal(&pid_speed,u);
                     //cmd_vel.linear.x = 1595+PIDCal(&pid_speed,u);
-                    ROS_INFO("Gas = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
-                }  
+                    ROS_INFO("Gas = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                }
+              
+            }           
+            else
+            {
+                cmd_vel.linear.x =1590;
+                ROS_INFO("SlowSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
             }
-
+            
+            }
         }
     }
     if(car_stop > 0)

@@ -169,7 +169,7 @@ unsigned char check_uint(uint16_t data)
 unsigned char send_cmd(uint16_t motor_pwm,uint16_t servo_pwm)
 {
     struct cmd buff;
-    buff.null       =   NULL;
+    buff.null       =   0x00;//NULL;
     buff.H          =   HEAD;
     buff.Motor_PWM  =   motor_pwm;
     buff.Servo_PWM  =   servo_pwm;

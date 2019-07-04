@@ -1,6 +1,12 @@
 /********************/
 /* CLASS DEFINITION */
 /********************/
+struct CircleData
+{
+    geometry_msgs::Point center;
+    float radius;
+};
+
 class L1Controller
 {
     public:
@@ -46,4 +52,4 @@ class L1Controller
 
 
 }; // end of class
-
+CircleData findCircle(geometry_msgs::Point pt1,geometry_msgs::Point pt2,geometry_msgs::Point pt3);//pt2为中点
