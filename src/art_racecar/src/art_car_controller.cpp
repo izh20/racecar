@@ -228,9 +228,9 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
     if(!goal_reached){
         for(int i =0; i< map_path.poses.size(); i++)
         {
-            i_start=i+20;
-            i_mid=i_start+20;
-            i_end=i_mid+20;
+            i_start=i+100;
+            i_mid=i_start+50;
+            i_end=i_mid+50;
             if(i_start>map_path.poses.size())
                 i_start=map_path.poses.size();
             if(i_mid>map_path.poses.size())
@@ -335,8 +335,8 @@ double L1Controller::getL1Distance(const double& _Vcmd)
     double L1 = 0;
     if(_Vcmd < 1.6)
         L1 = 3 / 3.0;
-    else if(_Vcmd > 1.6 && _Vcmd < 5.36)
-        L1 = _Vcmd*0.85 / 3.0;
+    else if(_Vcmd > 1.1 && _Vcmd < 5.36)
+        L1 = _Vcmd*1.7/ 3.0;
     else
         L1 = 12 / 3.0;
     return L1;
@@ -464,11 +464,11 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
 
                     double u = getGasInput(carVel.linear.x);
                     
-                   // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
+                    //cmd_vel.linear.x = 1500;
 		             cmd_vel.linear.x=(int)start_speed;
 
 
-                     start_speed += 2.1;
+                     start_speed += 1.8;
                      if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
                      
 		             ROS_INFO("baseSpeed = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
@@ -494,22 +494,22 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
                     //ROS_INFO("!goal_reached");
                     double u = getGasInput(carVel.linear.x);                   
                     cmd_vel.linear.x = baseSpeed + PIDCal(&pid_speed,u);
-                    //cmd_vel.linear.x = 1595+PIDCal(&pid_speed,u);
-                    ROS_INFO("Gas = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                    //cmd_vel.linear.x = 1500;
+                    ROS_INFO("Gas = %.2f\tangle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
                 }
                 }
                 else
                 {
-                    cmd_vel.linear.x =1550;
-                    ROS_INFO("SlowSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                    cmd_vel.linear.x =1578;
+                    ROS_INFO("SlowSpeed = %.2f\tangle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
                 }
                 
             }           
             else
             {
                 i_count=0;
-                cmd_vel.linear.x =1550;
-                ROS_INFO("SlowSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                cmd_vel.linear.x =1578;
+                ROS_INFO("SlowSpeed = %.2f\tangle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
             }
             
             }
