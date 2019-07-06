@@ -38,8 +38,8 @@ class L1Controller
         nav_msgs::Path map_path, odom_path;
 
         double L, Lfw, Lrv, Vcmd, lfw, lrv, steering, u, v;
-        double Gas_gain, baseAngle, Angle_gain, goalRadius;
-        int controller_freq, baseSpeed;
+        double Gas_gain, baseAngle, Angle_gain, goalRadius,slow_radius;
+        int controller_freq, baseSpeed,slow_time;
         bool foundForwardPt, goal_received, goal_reached;
         int car_stop;
 

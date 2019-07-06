@@ -71,15 +71,18 @@
     <!-- L1 controller -->  
     <node pkg="art_racecar" type="art_car_controller" respawn="false" name="art_car_controller" output="screen">       
         <!-- L1 -->
-        <param name="Vcmd" value="2.5" /> <!-- speed of car m/s -->        
+        <param name="Vcmd" value="3.2" /> <!-- speed of car m/s -->        
         <!-- ESC -->
         <param name="baseSpeed" value="1600"/> <!-- pwm for motor constant speed, 1500: stop --> 
  
 
         <!-- Servo -->
         <param name="baseAngle" value="90.0"/> <!-- the middle pos of servo, for tt02: 87, for hsp: ? -->
-        <param name="AngleGain" value="-2.5"/> <!-- for tt02: >0, for hsp: <0 -->	
-        <param name="GasGain" value="0.5"/>
+        <param name="AngleGain" value="-2.9"/> <!-- for tt02: >0, for hsp: <0 -->	
+        <param name="GasGain" value="0.6"/>
+
+         <param name="slow_radius" value="3"/>
+         <param name="slow_time" value="30"/>
 
         <!-- remap from="/odometry/filtered" to="odom" / --> 
         <remap from="/move_base_node/NavfnROS/plan" to="/move_base/NavfnROS/plan" /> 

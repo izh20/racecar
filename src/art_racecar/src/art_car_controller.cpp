@@ -32,6 +32,8 @@ along with hypha_racecar.  If not, see <http://www.gnu.org/licenses/>.
 #include "art_car_controller.hpp"
 
 #define PI 3.14159265358979
+
+
 int start_loop_flag = 0;
 double start_speed = 1580;
 extern  PID  pid_speed;
@@ -174,7 +176,9 @@ bool L1Controller::isForwardWayPt(const geometry_msgs::Point& wayPt, const geome
         return true;
     else 
     {
+       
         return false;
+
     }          
 }
 
@@ -224,9 +228,9 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
     if(!goal_reached){
         for(int i =0; i< map_path.poses.size(); i++)
         {
-            i_start=i+100;
-            i_mid=i_start+50;
-            i_end=i_mid+50;
+            i_start=i+20;
+            i_mid=i_start+20;
+            i_end=i_mid+20;
             if(i_start>map_path.poses.size())
                 i_start=map_path.poses.size();
             if(i_mid>map_path.poses.size())
@@ -247,7 +251,7 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
           
 
             CD1=findCircle(map_path_pose1,map_path_pose2,map_path_pose3);
-            ROS_INFO("radius:%f",CD1.radius);
+            //ROS_INFO("radius:%f",CD1.radius);
             try
             {
                 tf_listener.transformPose("odom", ros::Time(0) , map_path_pose, "map" ,odom_path_pose);
@@ -263,6 +267,7 @@ geometry_msgs::Point L1Controller::get_odom_car2WayPtVec(const geometry_msgs::Po
                         foundForwardPt = true;
                         break;
                     }
+                    
                 }
                 
                 
@@ -331,7 +336,7 @@ double L1Controller::getL1Distance(const double& _Vcmd)
     if(_Vcmd < 1.6)
         L1 = 3 / 3.0;
     else if(_Vcmd > 1.6 && _Vcmd < 5.36)
-        L1 = _Vcmd*1.2 / 3.0;
+        L1 = _Vcmd*0.85 / 3.0;
     else
         L1 = 12 / 3.0;
     return L1;
@@ -369,7 +374,8 @@ L1Controller::L1Controller()
     pn.param("GasGain", Gas_gain, 2.5);
     pn.param("baseSpeed", baseSpeed, 1590);
     pn.param("baseAngle", baseAngle, 90.0);
-
+    pn.param("slow_radius",slow_radius,10.0);//减速半径
+    pn.param("slow_time",slow_time,50);//减速时间
     //Publishers and Subscribers
     odom_sub = n_.subscribe("/odometry/filtered", 1, &L1Controller::odomCB, this);
     path_sub = n_.subscribe("/move_base_node/NavfnROS/plan", 1, &L1Controller::pathCB, this);
@@ -397,6 +403,8 @@ L1Controller::L1Controller()
     ROS_INFO("[param] Vcmd: %f", Vcmd);
     ROS_INFO("[param] Lfw: %f", Lfw);
     ROS_INFO("[param] GasGain: %f",Gas_gain);
+    ROS_INFO("[param] slow_radius: %f", slow_radius);
+    ROS_INFO("[param] slow_time: %d",slow_time);
     //Visualization Marker Settings
     initMarker();
     car_stop = 0;
@@ -423,6 +431,7 @@ void L1Controller::goalReachingCB(const ros::TimerEvent&)
 
 void L1Controller::controlLoopCB(const ros::TimerEvent&)
 {
+    int i_count;
     int count = 100;
     geometry_msgs::Pose carPose = odom.pose.pose;
     geometry_msgs::Twist carVel = odom.twist.twist;
@@ -444,9 +453,12 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
             if(!goal_reached)
             {
                // if(start_loop_flag++ <= 250)
-               if(CD1.radius>10)
+               if(CD1.radius>slow_radius)
                {
-		        if(carVel.linear.x<1.0)
+                i_count++;
+                if(i_count>slow_time)
+                {
+		        if(carVel.linear.x<1.5)
                   {
                   // Lfw = goalRadius = getL1Distance(1);
 
@@ -456,25 +468,25 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
 		             cmd_vel.linear.x=(int)start_speed;
 
 
-                     start_speed += 0.2;
+                     start_speed += 2.1;
                      if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
                      
 		             ROS_INFO("baseSpeed = %.2f\tSteering angle = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,cmd_vel.angular.z,carVel.linear.x);
                      }
-		        else if(carVel.linear.x>=1.0&&carVel.linear.x<1.8)
-		        {
-			         double u = getGasInput(carVel.linear.x);
+		        //else if(carVel.linear.x>=1.5&&carVel.linear.x<1.8)
+		        //{
+			    //     double u = getGasInput(carVel.linear.x);
 			          //Lfw = goalRadius = getL1Distance(2.0);
                    // cmd_vel.linear.x = start_speed + PIDCal(&pid_speed,u);
-                    cmd_vel.linear.x=(int)start_speed;
+                //   cmd_vel.linear.x=(int)start_speed;
 
 
-                     start_speed += 0.2;
-                     if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
+                //     start_speed += 0.5;
+                //     if(cmd_vel.linear.x > baseSpeed)   cmd_vel.linear.x = baseSpeed;
 
-                     ROS_INFO("baseSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                 //    ROS_INFO("baseSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
 
-		         }
+		         //}
                  else 
                  {
            	        //Lfw = goalRadius = getL1Distance(3.0);
@@ -485,11 +497,18 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
                     //cmd_vel.linear.x = 1595+PIDCal(&pid_speed,u);
                     ROS_INFO("Gas = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
                 }
-              
+                }
+                else
+                {
+                    cmd_vel.linear.x =1550;
+                    ROS_INFO("SlowSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
+                }
+                
             }           
             else
             {
-                cmd_vel.linear.x =1590;
+                i_count=0;
+                cmd_vel.linear.x =1550;
                 ROS_INFO("SlowSpeed = %.2f\tcarVel.linear.x=%.2f",cmd_vel.linear.x,carVel.linear.x);
             }
             
@@ -515,7 +534,7 @@ void L1Controller::controlLoopCB(const ros::TimerEvent&)
         else
         {
             car_stop = 0;
-            cmd_vel.linear.x = 1500;
+            cmd_vel.linear.x = 1490;
             pub_.publish(cmd_vel);
 
             //ROS_INFO("cmd_vel= %f",cmd_vel.linear.x);
